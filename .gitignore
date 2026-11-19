@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment Variables & Secrets
+.env
+.env.local
+
+# Large Binary Installers (>100MB)
+*.exe
+postgis-installer.exe
+
+# Logs & Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local Utility Scripts
+reset-password.bat
+*.bat
+
+# OS / Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

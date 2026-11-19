@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGIS Digitasi Spasial - APSIG (PostGIS & QGIS)</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Leaflet-Geoman CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css" />
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <button id="toggle-sidebar-btn" class="icon-btn" title="Toggle Sidebar">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="app-brand">
+        <i class="fa-solid fa-map-location-dot brand-icon"></i>
+        <div>
+          <h1>WebGIS Digitasi Spasial</h1>
+          <p class="subtitle">APSIG • PostgreSQL / PostGIS ⇄ QGIS Desktop</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="stat-badge" id="badge-titik">
+        <span class="dot dot-point"></span>
+        <span class="stat-label">Titik:</span>
+        <span class="stat-value" id="count-titik">0</span>
+      </div>
+      <div class="stat-badge" id="badge-garis">
+        <span class="dot dot-line"></span>
+        <span class="stat-label">Garis:</span>
+        <span class="stat-value" id="count-garis">0</span>
+      </div>
+      <div class="stat-badge" id="badge-poligon">
+        <span class="dot dot-polygon"></span>
+        <span class="stat-label">Poligon:</span>
+        <span class="stat-value" id="count-poligon">0</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="connection-status" id="conn-status" title="Status koneksi database PostGIS">
+        <span class="status-indicator loading"></span>
+        <span class="status-text" id="conn-text">Memeriksa Database...</span>
+      </div>
+      <button id="btn-qgis-guide" class="btn-primary-outline" title="Panduan menyambungkan ke QGIS">
+        <i class="fa-solid fa-desktop"></i> Sambung ke QGIS
+      </button>
+      <button id="btn-refresh" class="icon-btn" title="Refresh Data dari PostGIS">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <!-- Tab Controls -->
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="tab-layers">
+          <i class="fa-solid fa-layer-group"></i> Layer
+        </button>
+        <button class="tab-btn" data-tab="tab-list">
+          <i class="fa-solid fa-list-ul"></i> Data (<span id="tab-total-count">0</span>)
+        </button>
+      </div>
+
+      <!-- Tab Content: Layers -->
+      <div class="tab-content active" id="tab-layers">
+        <div class="sidebar-section">
+          <h3 class="section-title">Kontrol Layer Spasial</h3>
+          <p class="section-desc">Aktifkan atau sembunyikan layer hasil digitasi yang tersimpan di PostGIS.</p>
+          
+          <div class="layer-item">
+            <label class="custom-checkbox">
+              <input type="checkbox" id="toggle-layer-titik" checked>
+              <span class="checkmark"></span>
+              <span class="layer-symbol symbol-point"></span>
+              <span class="layer-name">Digitasi Titik (Point)</span>
+            </label>
+            <span class="layer-count" id="badge-count-titik">0</span>
+          </div>
+
+          <div class="layer-item">
+            <label class="custom-checkbox">
+              <input type="checkbox" id="toggle-layer-garis" checked>
+              <span class="checkmark"></span>
+              <span class="layer-symbol symbol-line"></span>
+              <span class="layer-name">Digitasi Garis (Polyline)</span>
+            </label>
+            <span class="layer-count" id="badge-count-garis">0</span>
+          </div>
+
+          <div class="layer-item">
+            <label class="custom-checkbox">
+              <input type="checkbox" id="toggle-layer-poligon" checked>
+              <span class="checkmark"></span>
+              <span class="layer-symbol symbol-polygon"></span>
+              <span class="layer-name">Digitasi Poligon (Polygon)</span>
+            </label>
+            <span class="layer-count" id="badge-count-poligon">0</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section quick-guide">
+          <h3 class="section-title"><i class="fa-solid fa-draw-polygon"></i> Cara Melakukan Digitasi</h3>
+          <ol class="guide-steps">
+            <li>Gunakan <strong>toolbar di sisi kiri peta</strong>.</li>
+            <li>Pilih ikon <strong>Titik</strong> <i class="fa-solid fa-location-dot"></i>, <strong>Garis</strong> <i class="fa-solid fa-route"></i>, atau <strong>Poligon</strong> <i class="fa-solid fa-draw-polygon"></i>.</li>
+            <li>Klik di peta untuk menggambar (klik ganda / klik titik awal untuk mengakhiri garis/poligon).</li>
+            <li>Formulir penyimpanan akan muncul otomatis. Isi nama, kategori, dan klik <strong>Simpan</strong>!</li>
+            <li>Data langsung tersimpan di PostGIS dan dapat langsung dilihat di <strong>QGIS</strong>!</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Tab Content: Data List -->
+      <div class="tab-content" id="tab-list">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="input-search" placeholder="Cari nama atau kategori...">
+        </div>
+
+        <div class="filter-pills">
+          <button class="pill active" data-filter="all">Semua</button>
+          <button class="pill" data-filter="titik">Titik</button>
+          <button class="pill" data-filter="garis">Garis</button>
+          <button class="pill" data-filter="poligon">Poligon</button>
+        </div>
+
+        <div class="feature-list" id="feature-list-container">
+          <!-- Dynamic feature items will be rendered here -->
+          <div class="empty-state">
+            <i class="fa-solid fa-map"></i>
+            <p>Belum ada data digitasi.</p>
+            <small>Mulai gambar objek di peta untuk menambahkan data.</small>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Map View -->
+    <main class="map-view">
+      <div id="map"></div>
+      
+      <!-- Coordinate & Zoom HUD -->
+      <div class="map-hud">
+        <span id="hud-coords">Lat: 0.000000, Lng: 0.000000</span>
+        <span class="separator">|</span>
+        <span id="hud-zoom">Zoom: 13</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Simpan Objek Digitasi -->
+  <div class="modal-backdrop" id="modal-save-feature">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="geom-badge" id="modal-geom-badge">Poligon</span>
+          <h2 id="modal-title">Simpan Objek Digitasi</h2>
+        </div>
+        <button class="modal-close-btn" id="btn-cancel-modal">&times;</button>
+      </div>
+
+      <form id="form-save-feature">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="input-nama">Nama Objek <span class="required">*</span></label>
+            <input type="text" id="input-nama" class="form-control" placeholder="Contoh: Gedung Rektorat, Jalan Merdeka..." required autofocus>
+          </div>
+
+          <div class="form-group">
+            <label for="input-kategori">Kategori</label>
+            <input list="kategori-suggestions" id="input-kategori" class="form-control" placeholder="Pilih atau ketik kategori baru...">
+            <datalist id="kategori-suggestions">
+              <option value="Fasilitas Pendidikan">
+              <option value="Fasilitas Kesehatan">
+              <option value="Fasilitas Umum">
+              <option value="Jalan Arteri">
+              <option value="Jalan Lokal">
+              <option value="Bangunan Gedung">
+              <option value="Permukiman">
+              <option value="Ruang Terbuka Hijau">
+              <option value="Lahan Pertanian">
+              <option value="Danau / Perairan">
+            </datalist>
+          </div>
+
+          <div class="form-group">
+            <label for="input-keterangan">Keterangan / Deskripsi</label>
+            <textarea id="input-keterangan" class="form-control" rows="3" placeholder="Informasi tambahan terkait objek spasial ini..."></textarea>
+          </div>
+
+          <!-- Geometri preview info -->
+          <div class="geom-meta-card" id="geom-meta-card">
+            <div class="geom-meta-item">
+              <span class="meta-label">Geometri:</span>
+              <span class="meta-val" id="meta-type">-</span>
+            </div>
+            <div class="geom-meta-item" id="meta-metric-wrap">
+              <span class="meta-label" id="meta-metric-label">Ukuran:</span>
+              <span class="meta-val" id="meta-metric-val">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-save">Batalkan</button>
+          <button type="submit" class="btn-primary" id="btn-confirm-save">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan ke PostGIS
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Panduan QGIS -->
+  <div class="modal-backdrop" id="modal-qgis-guide">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <i class="fa-solid fa-desktop brand-icon"></i>
+          <h2>Cara Menyambungkan ke QGIS Desktop</h2>
+        </div>
+        <button class="modal-close-btn" id="btn-close-qgis-guide">&times;</button>
+      </div>
+      <div class="modal-body qgis-guide-content">
+        <p>Semua objek yang kamu digitasi di web ini langsung tersimpan ke database <strong>PostGIS</strong>. Ikuti langkah mudah berikut untuk membukanya di QGIS:</p>
+
+        <div class="qgis-step">
+          <span class="step-num">1</span>
+          <div>
+            <h4>Buka QGIS & Tambah Koneksi PostGIS</h4>
+            <p>Di panel sebelah kiri QGIS (<strong>Browser Panel</strong>), cari item <strong>PostGIS</strong>, lalu <strong>klik kanan</strong> &rarr; pilih <strong>New Connection...</strong></p>
+          </div>
+        </div>
+
+        <div class="qgis-step">
+          <span class="step-num">2</span>
+          <div>
+            <h4>Isi Parameter Koneksi PostGIS</h4>
+            <div class="conn-params-table">
+              <div class="param-row"><span class="pk">Name:</span> <span class="pv">WebGIS Digitasi</span></div>
+              <div class="param-row"><span class="pk">Host:</span> <span class="pv">localhost</span></div>
+              <div class="param-row"><span class="pk">Port:</span> <span class="pv">5432</span></div>
+              <div class="param-row"><span class="pk">Database:</span> <span class="pv">webgis_digitasi</span></div>
+              <div class="param-row"><span class="pk">Authentication:</span> <span class="pv">Basic (User: postgres, Password: [password anda])</span></div>
+            </div>
+            <p class="param-tip"><i class="fa-solid fa-circle-info"></i> Klik <strong>Test Connection</strong>. Jika muncul centang hijau <em>"Connection was successful"</em>, klik <strong>OK</strong>.</p>
+          </div>
+        </div>
+
+        <div class="qgis-step">
+          <span class="step-num">3</span>
+          <div>
+            <h4>Tampilkan Layer ke Kanvas Peta QGIS</h4>
+            <p>Buka folder <strong>webgis_digitasi &rarr; public</strong>. Anda akan melihat 3 layer:
+              <br>• <code>digitasi_titik</code>
+              <br>• <code>digitasi_garis</code>
+              <br>• <code>digitasi_poligon</code>
+              <br>Cukup <strong>klik ganda</strong> atau <strong>drag & drop</strong> layer tersebut ke Layers Panel QGIS!</p>
+          </div>
+        </div>
+
+        <div class="qgis-step">
+          <span class="step-num">4</span>
+          <div>
+            <h4>Tips Real-time Auto Refresh di QGIS!</h4>
+            <p>Agar saat kamu menggambar di web, QGIS otomatis mengupdate petanya tanpa perlu klik reload manual:
+              <br>1. Klik kanan pada layer di QGIS &rarr; <strong>Properties</strong> &rarr; tab <strong>Rendering</strong>.
+              <br>2. Centang <strong>"Refresh layer at interval (seconds)"</strong> dan masukkan <strong>2</strong> detik.
+              <br>3. Sekarang QGIS kamu otomatis sinkron secara langsung dengan Web Digitasi!</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="btn-dismiss-qgis-guide">Mengerti, Tutup Panduan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Leaflet-Geoman JS -->
+  <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.js"></script>
+  
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>
+
